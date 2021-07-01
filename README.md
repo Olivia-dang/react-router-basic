@@ -1,73 +1,217 @@
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app) using the basic template.
+# Simple Journal app
+# Lesson plan
 
-## What's in the basic template?
-- It includes node-sass, and a style.scss (and removes all .css files)
-- It doesn't use serviceWorker
-- It replaces the react favicon with a flower of life icon
+- React Router
+- How is react router different from normal routes
+- BrowserRouter: is the root routing component that keeps your UI in sync with URL and Route.
+- Route: is responsible for rendering a component in your app when the URL matches its path.
+- Exact: matches exact path
+- Switch: will inly render the first Route that matches the URL
+- Navigation: Link
+- Populate the app:
+- history and redirect
 
-## Available Scripts
+https://reactrouter.com/web/guides/quick-start
+https://reactrouter.com/web/api/withRouter
 
-In the project directory, you can run:
 
-### `yarn start`
+1. Create empty react app using template:
+	- yarn create react-app journal_app --template basic-empty
+	- cd journal app
+	- yarn start
+2. npm install react-router-dom
 
-Runs the app in the development mode.<br />
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+## Result
+![Journal App screenshot](./img/home.png)
+![Journal App screenshot](./img/cate.png)
+![Journal App screenshot](./img/new.png)
 
-The page will reload if you make edits.<br />
-You will also see any lint errors in the console.
 
-### `yarn test`
+## <mark>Explanation</mark>
+- Syntax:
+```js
+<Route exact path="/" component={Home} />
+//same as
+<Route exact path="/">
+	<Home />
+</Route>
+//However, in this case, we use render instead to avoid the unmounting and mounting behaviour
+ ```
+ Read more: https://betterprogramming.pub/react-router-whats-the-difference-between-components-and-routes-d242f41b111d
+ - Switch
+ 	- you should put `<Route>` s with more specific (typically longer) paths before less-specific ones.
+ 	- If no `<Route>` matches, the `<Switch>` renders nothing (null)
+- Navigation - Link
+	 - Wherever you render a `<Link>`, an anchor (`<a>`) will be rendered in your HTML document. 
+	 - The `<NavLink>` is a special type of `<Link>` that can style itself as “active” when its to prop matches the current location.
+```
+<Link to="/">Home</Link>
+// <a href="/">Home</a>
+```
+```
+<NavLink to="/react" activeClassName="hurray">
+  
+</NavLink>
 
-Launches the test runner in the interactive watch mode.<br />
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+// When the URL is /react, this renders:
+// <a href="/react" className="hurray">React</a>
 
-### `yarn build`
+// When it's something else:
+// <a href="/react">React</a>
+```
+Any time that you want to force navigation, you can render a <Redirect>. When a <Redirect> renders, it will navigate using its to prop.
+```
+<Redirect to="/login" />
+```
 
-Builds the app for production to the `build` folder.<br />
-It correctly bundles React in production mode and optimizes the build for the best performance.
+App.js
+```js
+import React, {useState} from 'react'
+import {BrowserRouter as Router, Switch, Route, Link} from 'react-router-dom'
+import Home from './components/Home'
+import CategorySelection from './components/CategorySelection'
+import NewEntry from './components/NewEntry'
+import NotFound from './components/NotFound'
 
-The build is minified and the filenames include the hashes.<br />
-Your app is ready to be deployed!
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+const App = () => {
+  const defaultCategories = ["Food", "Coding", "Other"]
+  const[categories, setCategories] = useState(defaultCategories)
+  const [entries, setEntries] = useState([]) 
+      //we use an array here to keep a copy of existing data, just add new value to it
 
-### `yarn eject`
+  //whenever dealing with an array or object, never update state directly, always take a copy
+  function addEntryToJournal(newEntry) {
+    const updatedEntries = [...entries, newEntry]
+      //(...) Spread syntax can be used when all elements from an object or array need to be included in a list of some kind. 
+      //insert new item at the end
+    setEntries(updatedEntries)
+  }
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+  return (
+    <div >
+      {/* Router tag at root level */}
+      <Router> 
+        <ul>
+          <li><Link to='/'>Home</Link></li>
+          <li><Link to='/category'>Category Selection</Link></li>
+          <li><Link to='/entry/new/:id'>New Entry</Link></li>
+        </ul>
+        
+        <Switch>
+          <Route exact path='/' render={(props) => <Home {...props} entries={entries} /> } />
+          <Route path='/category' render={(props) => <CategorySelection {...props} categories={categories}/>} />
+          <Route path='/entry/new/:id' render={(props) => <NewEntry {...props} categories={categories} addEntryToJournal={addEntryToJournal}/>} />
+          <Route component={NotFound}/>
+        </Switch>
+      </Router>
+    </div>
+  )
+}
+export default App
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (Webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+components/Home.js
+```js
+import React from "react";
+import {Link} from 'react-router-dom'
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+const Home = ({entries}) => {
+  console.log(entries)
+  return (
+    <div>
+      <h1>Home</h1>
+      <Link to='/category'>Choose a category</Link>
+      {entries.map((entry, index) => {
+        return (
+          <div key={index}>
+            <h2>{entry.category}</h2>
+            <p>{entry.entry}</p>
+          </div>
+        )
+      })}
+    </div>
+  );
+};
 
-## Learn More
+export default Home;
+```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+components/NewEntry.js
+```js
+import React, {useState, useEffect} from "react" 
+import EntryForm from './EntryForm'
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+const NewEntry = ({match, categories, addEntryToJournal}) => {
+        // console.log(match) => we can access the URL id {...params: {id: "0", path: "/entry/new/:id", url: "/entry/new/0"}...}
+        // console.log(categories) => ["Food", "Coding", "Other"]
+    const selectedCategory = match.params ? match.params.id : -1
+    const category = categories[selectedCategory]
+        // console.log(category) => check if we have the right result
+    const [errorMsg, setErrorMsg] = useState(null)
 
-### Code Splitting
+    // we need to useEffect to control re-render, only when input change, does the setErrorMsg work
+    // or else it falls to an infinite loop
+    useEffect(() => {
+        category ? setErrorMsg(null) : setErrorMsg("Category not found, please try another link")
+    }, [categories, category])
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/code-splitting
+    return (
+        <div>
+            <h1> New Entry for {category}</h1>
+            {errorMsg && <p>{errorMsg}</p>}
+            {category && <EntryForm category={category} addEntryToJournal={addEntryToJournal}/>}
+        </div>
+    )
+}
+export default NewEntry
+```
+components/EntryForm.js
+```js
+import React, {useState} from "react";
+import { withRouter } from "react-router";
 
-### Analyzing the Bundle Size
+const EntryForm = ({addEntryToJournal, category, history}) => {
+  const [entry, setEntry] = useState("")
+  console.log(history)
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size
+  function onTextChange(event) {
+    // console.log(event.target.value)
+    setEntry(event.target.value)
+  }
+  function handleSubmit(event){
+    event.preventDefault()
+    if (entry && entry.length>0) {
+      // console.log("handleSubmit", {category, entry})
+      addEntryToJournal({category, entry})
+      return history.push("/") //automatic redirected to the homepage
+    }
+  }
 
-### Making a Progressive Web App
+  return (
+    <div>
+      <form onSubmit={handleSubmit} >
+        <div>
+          <textarea onChange={onTextChange}></textarea>
+        </div>
+        <input type='submit' value='Make an entry'/>
+      </form>
+    </div>
+  );
+};
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app
+export default withRouter(EntryForm);
+```
+components/NotFound.js
+```js
+import React from "react"
 
-### Advanced Configuration
+const NotFound = () => {
+	return (
+		<h1> opps page not found, please try another URL </h1>
+	)
+}
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/advanced-configuration
-
-### Deployment
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/deployment
-
-### `yarn build` fails to minify
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify
+export default NotFound
+```
